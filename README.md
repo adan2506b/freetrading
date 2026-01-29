@@ -1,0 +1,2 @@
+# freetrading
+learn trading free..
