@@ -17,107 +17,129 @@
     .hidden { display:none; }
     .btn { background:#1e40af; color:white; padding:10px 15px; border:none; border-radius:5px; cursor:pointer; }
     .btn.danger { background:#b91c1c; }
-    img.course-image { width:100%; max-height:300px; object-fit:cover; border-radius:5px; margin-bottom:10px; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>English Language Institute</h1>
-  <p>Online Courses • Videos • Images • Tasks • Tests</p>
+  <p>Online Courses • Videos • Tasks • Tests</p>
 </header>
 
 <nav>
   <button onclick="showSection('courses')">Courses</button>
-  <button onclick="showSection('admin')">Admin Panel</button>
+  <button onclick="openAdminLogin()">Admin Panel</button>
 </nav>
 
 <div class="container">
 
-  <!-- COURSES SECTION -->
+  <!-- COURSES -->
   <div id="courses">
     <h2>Available Courses</h2>
     <div id="courseList"></div>
   </div>
 
-  <!-- ADMIN SECTION -->
+  <!-- ADMIN LOGIN -->
+  <div id="adminLogin" class="hidden">
+    <h2>Admin Login</h2>
+    <input type="password" id="adminPass" placeholder="Enter Admin Password">
+    <button class="btn" onclick="checkAdmin()">Login</button>
+  </div>
+
+  <!-- ADMIN PANEL -->
   <div id="admin" class="hidden">
     <h2>Admin Panel</h2>
-    <p><b>Add New Course</b></p>
-    <input id="title" placeholder="Course Title" />
+    <input id="title" placeholder="Course Title">
     <textarea id="desc" placeholder="Course Description"></textarea>
-    <input type="file" id="image" accept="image/*" />
-    <input type="file" id="video" accept="video/*" />
+    <input type="file" id="video" accept="video/*">
     <textarea id="task" placeholder="Task / Assignment"></textarea>
     <textarea id="test" placeholder="Test Question"></textarea>
     <button class="btn" onclick="addCourse()">Add Course</button>
+    <br><br>
+    <button class="btn danger" onclick="logout()">Logout</button>
   </div>
 
 </div>
 
+<!-- CryptoJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
 <script>
-  // Load courses from localStorage
+  // ===== ADMIN PASSWORD HASH (admin123) =====
+  const ADMIN_HASH = "0192023a7bbd73250516f069df18b500";
+
   let courses = JSON.parse(localStorage.getItem('courses')) || [];
 
   function showSection(id) {
-    document.getElementById('courses').classList.add('hidden');
-    document.getElementById('admin').classList.add('hidden');
+    ['courses','admin','adminLogin'].forEach(s=>{
+      document.getElementById(s).classList.add('hidden');
+    });
     document.getElementById(id).classList.remove('hidden');
   }
 
-  function addCourse() {
-    const videoFile = video.files[0];
-    const imageFile = image.files[0];
+  function openAdminLogin() {
+    showSection('adminLogin');
+  }
 
-    if(!title.value || !desc.value){
-      alert('Please enter course title and description!');
-      return;
+  function checkAdmin() {
+    const pass = document.getElementById('adminPass').value;
+    const hash = CryptoJS.MD5(pass).toString();
+    if (hash === ADMIN_HASH) {
+      sessionStorage.setItem("isAdmin", "true");
+      showSection('admin');
+    } else {
+      alert("Wrong password!");
     }
+  }
 
+  function logout() {
+    sessionStorage.removeItem("isAdmin");
+    showSection('courses');
+  }
+
+  function addCourse() {
+    const file = video.files[0];
     const course = {
       title: title.value,
       desc: desc.value,
-      video: videoFile ? URL.createObjectURL(videoFile) : '',
-      image: imageFile ? URL.createObjectURL(imageFile) : '',
+      video: file ? URL.createObjectURL(file) : '',
       task: task.value,
       test: test.value
     };
-
     courses.push(course);
     localStorage.setItem('courses', JSON.stringify(courses));
-
-    alert('Course Added Successfully');
-
-    // Reset form fields
-    title.value = desc.value = video.value = image.value = task.value = test.value = '';
-
+    alert("Course Added");
+    title.value = desc.value = video.value = task.value = test.value = '';
     renderCourses();
   }
 
-  function deleteCourse(index) {
-    if (!confirm('Are you sure you want to delete this course?')) return;
-    courses.splice(index, 1);
+  function deleteCourse(i) {
+    if (!confirm("Delete course?")) return;
+    courses.splice(i,1);
     localStorage.setItem('courses', JSON.stringify(courses));
     renderCourses();
   }
 
   function renderCourses() {
     courseList.innerHTML = '';
-    courses.forEach((c, i) => {
+    courses.forEach((c,i)=>{
       courseList.innerHTML += `
         <div class="card">
           <h3>${c.title}</h3>
-          ${c.image ? `<img src="${c.image}" alt="${c.title}" class="course-image">` : ''}
           <p>${c.desc}</p>
-          ${c.video ? `<video width="100%" height="315" controls><source src="${c.video}" type="video/mp4"></video>` : ''}
+          ${c.video ? `<video controls width="100%"><source src="${c.video}"></video>` : ''}
           <p><b>Task:</b> ${c.task}</p>
           <p><b>Test:</b> ${c.test}</p>
-          <button class="btn danger" onclick="deleteCourse(${i})">Delete</button>
-        </div>`;
+          ${sessionStorage.getItem("isAdmin") ? `<button class="btn danger" onclick="deleteCourse(${i})">Delete</button>` : ''}
+        </div>
+      `;
     });
   }
 
-  // Initial render
+  if (sessionStorage.getItem("isAdmin")) {
+    showSection('admin');
+  }
+
   renderCourses();
 </script>
 
